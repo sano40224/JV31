@@ -1,0 +1,8 @@
+CREATE DATABASE jv31;
+CREATE TABLE `社員マスタ` (
+  `ユーザID` int(11),
+  `氏名` varchar(45) NOT NULL,
+  `性別` char(1) DEFAULT '0',
+  `備考` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`ユーザID`)
+);
