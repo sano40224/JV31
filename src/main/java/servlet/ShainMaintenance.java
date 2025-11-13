@@ -53,7 +53,7 @@ public class ShainMaintenance extends HttpServlet {
                 break;
         }
     }
-
+    
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -68,7 +68,8 @@ public class ShainMaintenance extends HttpServlet {
         String gender = null;
         String note = null;
         Shain shain = new Shain();
-
+        
+        //action
         switch (action) {
             case "add":
                 // 新規登録 保存処理
@@ -88,7 +89,7 @@ public class ShainMaintenance extends HttpServlet {
                 shain.setName(name);
                 shain.setGender(gender);
                 shain.setNote(note);
-
+                
                 shainDAO.insert(shain);
                 response.sendRedirect(request.getContextPath() + "/maintenance?action=list");
                 break;
@@ -146,8 +147,8 @@ public class ShainMaintenance extends HttpServlet {
         System.out.println("listShainメソッドが受け取ったパラメータ:");
         System.out.println("  - searchName: [" + searchName + "]");
         System.out.println("  - gender:     [" + gender + "]");
-        System.out.println("  - sortColumn: [" + sortColumn + "]"); // ← この行を追加
-        System.out.println("  - sortOrder:  [" + sortOrder + "]");  // ← この行を追加
+        System.out.println("  - sortColumn: [" + sortColumn + "]");
+        System.out.println("  - sortOrder:  [" + sortOrder + "]"); 
 
         // DAOの新しい検索メソッドを呼び出す
         List<Shain> listShain = shainDAO.findWithCriteria(searchName, gender, sortColumn, sortOrder);

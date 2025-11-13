@@ -134,7 +134,7 @@
 <body>
 <h2>社員編集</h2>
 <form name="shainForm" action="maintenance" method="post" onsubmit="return validateForm()">
-    <input type="hidden" name="action" value="update">
+    <input type="hidden" name="action" value="executeUpdate">
     <input type="hidden" name="id" value="<%= s.getId() %>">
     氏名: <input type="text" name="shimei" value="<%= s.getName() %>" ><br>
     性別:

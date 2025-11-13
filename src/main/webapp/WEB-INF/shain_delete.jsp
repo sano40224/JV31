@@ -104,7 +104,7 @@
     </li>
 </ul>
 <form action="maintenance" method="post">
-    <input type="hidden" name="action" value="delete">
+    <input type="hidden" name="action" value="executeDelete">
     <input type="hidden" name="id" value="<%= s.getId() %>">
     <input type="submit" value="削除">
 </form>

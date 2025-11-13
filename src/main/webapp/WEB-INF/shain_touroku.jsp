@@ -122,7 +122,7 @@
 <h1>社員新規登録</h1>
 
 <form action="maintenance" method="post">
-    <input type="hidden" name="action" value="add">
+    <input type="hidden" name="action" value="executeAdd">
     氏名: <input type="text" name="shimei" required><br>
     性別:
     <input type="radio" name="seibetsu" value="1" required>男性
@@ -132,7 +132,6 @@
     <input type="submit" value="登録">
 </form>
 <p class="back_btn"><a href="maintenance">一覧に戻る</a></p>
-</form>
 
 </body>
 </html>
