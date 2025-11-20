@@ -1,167 +1,90 @@
 package servlet;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import model.Shain;
-import model.ShainDAO;
-
+@WebServlet("/maintenance")
 public class ShainMaintenance extends HttpServlet {
 
-    private ShainDAO shainDAO = new ShainDAO();
+    private Map<String, Action> actionMap = new HashMap<>();
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String action = request.getParameter("action");
-
-        switch (action == null ? "list" : action) {
-            case "add":
-                // 新規登録 初期表示
-                RequestDispatcher dispatcherAdd = request.getRequestDispatcher("/WEB-INF/shain_touroku.jsp");
-                dispatcherAdd.forward(request, response);
-                break;
-
-            case "edit":
-                // 更新 初期表示
-                int editId = Integer.parseInt(request.getParameter("id"));
-                Shain editShain = shainDAO.findById(editId);
-                request.setAttribute("shain", editShain);
-                RequestDispatcher dispatcherEdit = request.getRequestDispatcher("/WEB-INF/shain_edit.jsp");
-                dispatcherEdit.forward(request, response);
-                break;
-
-            case "delete":
-                // 削除 初期表示
-                int deleteId = Integer.parseInt(request.getParameter("id"));
-                Shain deleteShain = shainDAO.findById(deleteId);
-                request.setAttribute("shain", deleteShain);
-                RequestDispatcher dispatcherDelete = request.getRequestDispatcher("/WEB-INF/shain_delete.jsp");
-                dispatcherDelete.forward(request, response);
-                break;
-
-            default:
-                // 一覧表示 (初期表示)
-                listShain(request, response);
-                break;
-        }
+    public void init() throws ServletException {
+        // action名と実行するActionクラスをマッピング
+        
+        // GET (画面表示系)
+        actionMap.put("list", new mainList());
+        actionMap.put("add", new showAdd());
+        actionMap.put("edit", new showEdit());
+        actionMap.put("delete", new showDelete());
+        
+        // POST (実行系)
+        actionMap.put("executeAdd", new executeAdd());
+        actionMap.put("executeUpdate", new executeEdit());
+        actionMap.put("executeDelete", new executeDelete());
     }
-    
+
+    // doGet, doPostをserviceメソッドで共通化
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void service(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
+        
         request.setCharacterEncoding("UTF-8");
-        String action = request.getParameter("action");
-        if (action == null || action.isEmpty()) {
-            action = "list";
+        
+        // 1. actionパラメータを取得
+        String actionName = request.getParameter("action");
+        
+        // "action" が null または空、または "list" の場合
+        // (doPostでlistを呼ぶのは検索実行時)
+        if (actionName == null || actionName.isEmpty() || 
+            (request.getMethod().equals("POST") && actionName.equals("list"))) {
+            
+            actionName = "list";
         }
-        String idStr = null;
-        String name = null;
-        String gender = null;
-        String note = null;
-        Shain shain = new Shain();
         
-        //action
-        switch (action) {
-            case "add":
-                // 新規登録 保存処理
-                name = request.getParameter("shimei");
-                gender = request.getParameter("seibetsu");
-                note = request.getParameter("bikou");
-
-                if (name == null || name.trim().isEmpty() ||
-                        gender == null || gender.trim().isEmpty()) {
-                    request.setAttribute("shimeiError", "氏名と性別は必須です");
-                    RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/shain_touroku.jsp");
-                    dispatcher.forward(request, response);
-                    return;
-                }
-
-                shain = new Shain();
-                shain.setName(name);
-                shain.setGender(gender);
-                shain.setNote(note);
-                
-                shainDAO.insert(shain);
-                response.sendRedirect(request.getContextPath() + "/maintenance?action=list");
-                break;
-
-            case "update":
-                // 更新 保存処理
-                idStr = request.getParameter("id");
-                name = request.getParameter("shimei");
-                gender = request.getParameter("seibetsu");
-                note = request.getParameter("bikou");
-                
-                if (idStr == null || idStr.trim().isEmpty() ||
-                        name == null || name.trim().isEmpty() ||
-                        gender == null || gender.trim().isEmpty()) {
-                    request.setAttribute("shimeiError", "氏名と性別は必須です");
-                    RequestDispatcher dispatcherEdit = request.getRequestDispatcher("/WEB-INF/shain_edit.jsp");
-                    dispatcherEdit.forward(request, response);
-                    return;
-                }
-
-                shain = new Shain();
-                shain.setId(Integer.parseInt(idStr));
-                shain.setName(name);
-                shain.setGender(gender);
-                shain.setNote(note);
-
-                shainDAO.update(shain);
-                response.sendRedirect(request.getContextPath() + "/maintenance?action=list");
-                break;
-
-            case "delete":
-                // 削除 保存処理
-                int deleteId = Integer.parseInt(request.getParameter("id"));
-                shainDAO.delete(deleteId);
-                response.sendRedirect(request.getContextPath() + "/maintenance?action=list");
-                break;
-
-            default:
-                //一覧表示 (検索実行時)
-                listShain(request, response);
-                break;
+        // 2. 対応するActionクラスを取得
+        Action action = actionMap.get(actionName);
+        
+        if (action == null) {
+            // "add", "edit", "delete" はGETリクエスト時のみ有効
+            // (POST時は "executeAdd" などになる)
+            if (request.getMethod().equals("GET")) {
+                 // GETで action=list 以外が指定された場合
+                 action = actionMap.get(actionName);
+            }
+            
+            // それでも見つからない場合はデフォルト（一覧）
+            if (action == null) {
+                action = actionMap.get("list");
+            }
         }
-    }
-    private void listShain(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        // 文字コードを設定
-        request.setCharacterEncoding("UTF-8");
+        
+        String viewPath = null;
+        try {
+            // 3. Actionクラスの実行
+            viewPath = action.execute(request, response);
+            
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
 
-        // リクエストパラメータから検索キーワードとソート条件を取得
-        String searchName = request.getParameter("searchName");
-        String gender = request.getParameter("gender");
-        String sortColumn = request.getParameter("sortColumn");
-        String sortOrder = request.getParameter("sortOrder");
-        
-        System.out.println("listShainメソッドが受け取ったパラメータ:");
-        System.out.println("  - searchName: [" + searchName + "]");
-        System.out.println("  - gender:     [" + gender + "]");
-        System.out.println("  - sortColumn: [" + sortColumn + "]");
-        System.out.println("  - sortOrder:  [" + sortOrder + "]"); 
-
-        // DAOの新しい検索メソッドを呼び出す
-        List<Shain> listShain = shainDAO.findWithCriteria(searchName, gender, sortColumn, sortOrder);
-        
-        // 検索結果と検索条件をリクエストスコープに保存（JSPで表示するため）
-        request.setAttribute("shainList", listShain);
-        request.setAttribute("searchName", searchName);
-        request.setAttribute("gender", gender);
-        request.setAttribute("sortColumn", sortColumn);
-        request.setAttribute("sortOrder", sortOrder);
-        
-        // JSPへフォワード
-        RequestDispatcher dispatcherList = request.getRequestDispatcher("/WEB-INF/shain_list.jsp");
-        dispatcherList.forward(request, response);
+        // 4. viewPathに基づいてフォワードまたはリダイレクト
+        if (viewPath.startsWith("redirect:")) {
+            // "redirect:/maintenance?action=list" のような形式
+            String redirectPath = viewPath.substring("redirect:".length());
+            response.sendRedirect(request.getContextPath() + redirectPath);
+        } else {
+            // "/WEB-INF/shain_list.jsp" のような形式
+            RequestDispatcher dispatcher = request.getRequestDispatcher(viewPath);
+            dispatcher.forward(request, response);
+        }
     }
 }
